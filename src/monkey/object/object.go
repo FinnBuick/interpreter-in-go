@@ -29,14 +29,16 @@ type Object interface {
 }
 
 type Integer struct {
-	Value int64
+	Value   int64
+	hashKey *HashKey
 }
 
 func (i *Integer) Type() ObjectType { return INTEGER_OBJ }
 func (i *Integer) Inspect() string  { return fmt.Sprintf("%d", i.Value) }
 
 type Boolean struct {
-	Value bool
+	Value   bool
+	hashkey *HashKey
 }
 
 func (b *Boolean) Type() ObjectType { return BOOLEAN_OBJ }
@@ -87,7 +89,8 @@ func (f *Function) Inspect() string {
 }
 
 type String struct {
-	Value string
+	Value   string
+	hashKey *HashKey
 }
 
 func (s *String) Type() ObjectType { return STRING_OBJ }
@@ -128,22 +131,44 @@ type HashKey struct {
 }
 
 func (b *Boolean) HashKey() HashKey {
-	var value uint64
+	if b.hashkey != nil {
+		return *b.hashkey
+	}
 
+	var value uint64
 	if b.Value {
 		value = 1
 	} else {
 		value = 0
 	}
 
-	return HashKey{Type: b.Type(), Value: value}
+	hashKey := HashKey{Type: b.Type(), Value: value}
+	b.hashkey = &hashKey
+	return hashKey
+}
+
+func (i *Integer) HashKey() HashKey {
+	if i.hashKey != nil {
+		return *i.hashKey
+	}
+
+	hashKey := HashKey{Type: i.Type(), Value: uint64(i.Value)}
+
+	i.hashKey = &hashKey
+	return hashKey
 }
 
 func (s *String) HashKey() HashKey {
+	if s.hashKey != nil {
+		return *s.hashKey
+	}
+
 	h := fnv.New64a()
 	h.Write([]byte(s.Value))
 
-	return HashKey{Type: s.Type(), Value: h.Sum64()}
+	hashKey := HashKey{Type: s.Type(), Value: h.Sum64()}
+	s.hashKey = &hashKey
+	return hashKey
 }
 
 type HashPair struct {
